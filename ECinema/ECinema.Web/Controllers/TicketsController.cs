@@ -1,12 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
-using ECinema.Repository;
 using ECinema.Domain.DTO;
 using ECinema.Domain.DomainModels;
 using ECinema.Services.Interface;
@@ -33,18 +29,18 @@ namespace ECinema.Web.Controllers
         //Tickets/AddTicketToCart
         public IActionResult AddTicketToCart(Guid? id)
         {
-            var model = this._ticketService.GetShoppingCartInfo(id);
+            var model = this._ticketService.GetShoppingCartInfoAsync(id);
             return View(model);
         }
 
         //Add to cart post akcija
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult AddTicketToCart([Bind("TicketId", "Quantity")] AddToShoppingCartDto item)
+        public async Task<IActionResult> AddTicketToCart([Bind("TicketId", "Quantity")] AddToShoppingCartDto item)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-            var result = this._ticketService.AddToShoppingCart(item, userId);
+            var result = await _ticketService.AddToShoppingCart(item, userId);
 
             if (result)
             {
@@ -57,16 +53,16 @@ namespace ECinema.Web.Controllers
 
 
         // GET: Tickets/Details/5
-        public IActionResult Details(Guid? id)
+        public async Task<IActionResult> Details(Guid? id)
         {
-            if (id == null)
+            if (id is null)
             {
                 return NotFound();
             }
 
-            var ticket = this._ticketService.GetDetailsForTicket(id);
+            var ticket = await _ticketService.GetDetailsForTicketAsync(id);
 
-            if (ticket == null)
+            if (ticket is null)
             {
                 return NotFound();
             }
@@ -85,31 +81,32 @@ namespace ECinema.Web.Controllers
         // more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Create([Bind("Id,MovieName,MovieDescription,MovieRating,TicketPrice,MovieImage")] Ticket ticket)
+        public async Task<IActionResult> Create([Bind("Id,MovieName,MovieDescription,MovieRating,TicketPrice,MovieImage")] Ticket ticket)
         {
             if (ModelState.IsValid)
             {
-
-                this._ticketService.CreateNewTicket(ticket);
+                await _ticketService.CreateNewTicketAsync(ticket);
                 return RedirectToAction(nameof(Index));
             }
+            
             return View(ticket);
         }
 
         // GET: Tickets/Edit/5
-        public IActionResult Edit(Guid? id)
+        public async Task<IActionResult> Edit(Guid? id)
         {
-            if (id == null)
+            if (id is null)
             {
                 return NotFound();
             }
 
-            var ticket = this._ticketService.GetDetailsForTicket(id);
+            var ticket = await _ticketService.GetDetailsForTicketAsync(id);
 
-            if (ticket == null)
+            if (ticket is null)
             {
                 return NotFound();
             }
+            
             return View(ticket);
         }
 
@@ -118,46 +115,47 @@ namespace ECinema.Web.Controllers
         // more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Edit(Guid id, [Bind("Id,MovieName,MovieDescription,MovieRating,TicketPrice,MovieImage")] Ticket ticket)
+        public async Task<IActionResult> Edit(Guid id, [Bind("Id,MovieName,MovieDescription,MovieRating,TicketPrice,MovieImage")] Ticket ticket)
         {
             if (id != ticket.Id)
             {
                 return NotFound();
             }
 
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                try
-                {
-                    this._ticketService.UpdateExistingTicket(ticket);
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!TicketExists(ticket.Id))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
-                }
-                return RedirectToAction(nameof(Index));
+                return View(ticket);
             }
-            return View(ticket);
+            
+            try
+            {
+                await _ticketService.UpdateExistingTicketAsync(ticket);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                var isTicketExist = await TicketExistsAsync(ticket.Id);
+                
+                if (!isTicketExist)
+                {
+                    return NotFound();
+                }
+
+                throw;
+            }
+            return RedirectToAction(nameof(Index));
         }
 
         // GET: Tickets/Delete/5
-        public IActionResult Delete(Guid? id)
+        public async Task<IActionResult> Delete(Guid? id)
         {
-            if (id == null)
+            if (id is null)
             {
                 return NotFound();
             }
 
-            var ticket = this._ticketService.GetDetailsForTicket(id);
+            var ticket = await _ticketService.GetDetailsForTicketAsync(id);
 
-            if (ticket == null)
+            if (ticket is null)
             {
                 return NotFound();
             }
@@ -168,15 +166,15 @@ namespace ECinema.Web.Controllers
         // POST: Tickets/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
-        public IActionResult DeleteConfirmed(Guid id)
+        public async Task<IActionResult> DeleteConfirmed(Guid id)
         {
-            this._ticketService.DeleteTicket(id);
+            await _ticketService.DeleteTicketAsync(id);
             return RedirectToAction(nameof(Index));
         }
 
-        private bool TicketExists(Guid id)
+        private async Task<bool> TicketExistsAsync(Guid id)
         {
-            return this._ticketService.GetDetailsForTicket(id) != null;
+            return await _ticketService.GetDetailsForTicketAsync(id) != null;
         }
     }
 }

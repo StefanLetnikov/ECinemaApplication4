@@ -1,13 +1,12 @@
 ﻿using ECinema.Domain.DomainModels;
-using System;
 using System.Collections.Generic;
-using System.Text;
+using System.Threading.Tasks;
 
 namespace ECinema.Services.Interface
 {
     public interface IOrderService
     {
-        public List<Order> GetAllOrders();
-        Order GetOrderDetails(BaseEntity model);
+        public Task<List<Order>> GetAllOrders();
+        Task<Order> GetOrderDetails(BaseEntity model);
     }
 }

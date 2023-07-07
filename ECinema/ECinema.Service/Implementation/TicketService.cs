@@ -2,12 +2,10 @@
 using ECinema.Domain.DTO;
 using ECinema.Repository.Interface;
 using ECinema.Services.Interface;
-using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.Sockets;
-using System.Text;
+using System.Threading.Tasks;
 
 namespace ECinema.Services.Implementation
 {
@@ -16,68 +14,71 @@ namespace ECinema.Services.Implementation
         private readonly IRepository<Ticket> _ticketRepository;
         private readonly IRepository<TicketInShoppingCart> _ticketInShoppingCartRepository;
         private readonly IUserRepository _userRepository;
-        public TicketService(IRepository<Ticket> ticketRepository, IUserRepository userRepository, IRepository<TicketInShoppingCart> ticketInShoppingCartRepository)
+        
+        public TicketService(IRepository<Ticket> ticketRepository, IUserRepository userRepository, 
+            IRepository<TicketInShoppingCart> ticketInShoppingCartRepository)
         {
             _ticketRepository = ticketRepository;
             _userRepository = userRepository;
             _ticketInShoppingCartRepository = ticketInShoppingCartRepository;
         }
 
-        public bool AddToShoppingCart(AddToShoppingCartDto item, string userId)
+        public async Task<bool> AddToShoppingCart(AddToShoppingCartDto item, string userId)
         {
-            var user = this._userRepository.Get(userId);
+            var user = _userRepository.Get(userId);
             var userShoppingCart = user.UserCart;
-
-
-            if (item.TicketId != null && userShoppingCart != null)
+            
+            if (userShoppingCart is null)
             {
-                var ticket = this.GetDetailsForTicket(item.TicketId);
-                if (ticket != null)
-                {
-                    TicketInShoppingCart itemToAdd = new TicketInShoppingCart
-                    {
-                        Ticket = ticket,
-                        TicketId = ticket.Id,
-                        ShoppingCart = userShoppingCart,
-                        ShoppingCartId = userShoppingCart.Id,
-                        Quantity = item.Quantity,
-                    };
-
-                    this._ticketInShoppingCartRepository.Insert(itemToAdd);
-                    return true;
-                }
                 return false;
-
             }
-            return false;
+            
+            var ticket = await GetDetailsForTicketAsync(item.TicketId);
+            
+            if (ticket is null)
+            {
+                return false;
+            }
+            
+            TicketInShoppingCart itemToAdd = new TicketInShoppingCart
+            {
+                Ticket = ticket,
+                TicketId = ticket.Id,
+                ShoppingCart = userShoppingCart,
+                ShoppingCartId = userShoppingCart.Id,
+                Quantity = item.Quantity,
+            };
+
+            await _ticketInShoppingCartRepository.InsertAsync(itemToAdd);
+            
+            return true;
         }
 
-        public void CreateNewTicket(Ticket t)
+        public async Task CreateNewTicketAsync(Ticket t)
         {
-            this._ticketRepository.Insert(t);
+            await _ticketRepository.InsertAsync(t);
         }
 
-        public void DeleteTicket(Guid? id)
+        public async Task DeleteTicketAsync(Guid? id)
         {
-            var ticket = this.GetDetailsForTicket(id);
-            this._ticketRepository.Delete(ticket);
+            var ticket = await GetDetailsForTicketAsync(id);
+            await _ticketRepository.DeleteAsync(ticket);
         }
 
         public List<Ticket> GetAllTickets()
         {
-            return this._ticketRepository.GetAll().ToList();
-
+            return _ticketRepository.GetAll().ToList();
         }
 
-        public Ticket GetDetailsForTicket(Guid? id)
+        public async Task<Ticket> GetDetailsForTicketAsync(Guid? id)
         {
-            return this._ticketRepository.Get(id);
-
+            return await _ticketRepository.GetAsync(id);
         }
 
-        public AddToShoppingCartDto GetShoppingCartInfo(Guid? id)
+        public async Task<AddToShoppingCartDto> GetShoppingCartInfoAsync(Guid? id)
         {
-            var ticket = this.GetDetailsForTicket(id);
+            var ticket = await GetDetailsForTicketAsync(id);
+            
             AddToShoppingCartDto model = new AddToShoppingCartDto
             {
                 SelectedTicket = ticket,
@@ -88,9 +89,9 @@ namespace ECinema.Services.Implementation
             return model;
         }
 
-        public void UpdateExistingTicket(Ticket t)
+        public async Task UpdateExistingTicketAsync(Ticket ticket)
         {
-            this._ticketRepository.Update(t);
+            await _ticketRepository.UpdateAsync(ticket);
         }
     }
 }
