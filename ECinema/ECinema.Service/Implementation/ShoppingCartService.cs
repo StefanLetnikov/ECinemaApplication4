@@ -2,11 +2,10 @@
 using ECinema.Domain.DTO;
 using ECinema.Repository.Interface;
 using ECinema.Services.Interface;
-using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
+using System.Threading.Tasks;
 
 namespace ECinema.Services.Implementation
 {
@@ -30,7 +29,7 @@ namespace ECinema.Services.Implementation
         {
             if (!string.IsNullOrEmpty(userId) && id != null)
             {
-                var loggedInUser = this._userRepository.Get(userId);
+                var loggedInUser = _userRepository.Get(userId);
 
 
                 var userShoppingCart = loggedInUser.UserCart;
@@ -38,23 +37,23 @@ namespace ECinema.Services.Implementation
 
                 userShoppingCart.TicketInShoppingCarts.Remove(itemToDelete);
 
-                this._shoppingCartRepository.Update(userShoppingCart);
+                _shoppingCartRepository.UpdateAsync(userShoppingCart);
                 return true;
             }
             return false;
         }
 
-        public ShoppingCartDto getShoppingCartInfo(string userId)
+        public ShoppingCartDto GetShoppingCartInfo(string userId)
         {
 
-            var loggedInUser = this._userRepository.Get(userId);
+            var loggedInUser = _userRepository.Get(userId);
 
 
             var userShoppingCart = loggedInUser.UserCart;
 
-            var AllTickets = userShoppingCart.TicketInShoppingCarts.ToList();
+            var allTickets = userShoppingCart.TicketInShoppingCarts.ToList();
 
-            var allTicketPrices = AllTickets.Select(z => new {
+            var allTicketPrices = allTickets.Select(z => new {
                 TicketPrice = z.Ticket.TicketPrice,
                 Quantity = z.Quantity
             }).ToList();
@@ -67,55 +66,53 @@ namespace ECinema.Services.Implementation
 
             ShoppingCartDto scDto = new ShoppingCartDto
             {
-                Tickets = AllTickets,
+                Tickets = allTickets,
                 TotalPrice = totalPrice
             };
 
             return scDto;
         }
 
-        public bool OrderNow(string userId)
+        public async Task<bool> OrderNowAsync(string userId)
         {
-            if (!string.IsNullOrEmpty(userId))
+            if (string.IsNullOrEmpty(userId))
             {
-                var loggedInUser = this._userRepository.Get(userId);
-
-
-                var userShoppingCart = loggedInUser.UserCart;
-
-                Order order = new Order
-                {
-                    Id = Guid.NewGuid(),
-                    User = loggedInUser,
-                    UserId = userId
-                };
-
-                this._orderRepository.Insert(order);
-
-
-                List<TicketInOrder> ticketInOrders = new List<TicketInOrder>();
-
-                var result = userShoppingCart.TicketInShoppingCarts.Select(z => new TicketInOrder
-                {
-                    TicketId = z.Ticket.Id,
-                    OrderedTicket = z.Ticket,
-                    OrderId = order.Id,
-                    UserOrder = order
-                }).ToList();
-
-                ticketInOrders.AddRange(result);
-
-                foreach (var item in ticketInOrders)
-                {
-                    this._ticketInOrderRepository.Insert(item);
-
-                }
-
-                loggedInUser.UserCart.TicketInShoppingCarts.Clear();
-                this._userRepository.Update(loggedInUser);
-                return true;
+                return false;
             }
-            return false;
+            
+            var loggedInUser = _userRepository.Get(userId);
+            var userShoppingCart = loggedInUser.UserCart;
+
+            Order order = new Order
+            {
+                Id = Guid.NewGuid(),
+                User = loggedInUser,
+                UserId = userId
+            };
+
+            await _orderRepository.InsertAsync(order);
+            
+            List<TicketInOrder> ticketInOrders = new List<TicketInOrder>();
+
+            var result = userShoppingCart.TicketInShoppingCarts.Select(z => new TicketInOrder
+            {
+                TicketId = z.Ticket.Id,
+                OrderedTicket = z.Ticket,
+                OrderId = order.Id,
+                UserOrder = order
+            }).ToList();
+
+            ticketInOrders.AddRange(result);
+
+            foreach (var item in ticketInOrders)
+            {
+                await _ticketInOrderRepository.InsertAsync(item);
+            }
+
+            loggedInUser.UserCart.TicketInShoppingCarts.Clear();
+            _userRepository.Update(loggedInUser);
+            
+            return true;
         }
     }
 }

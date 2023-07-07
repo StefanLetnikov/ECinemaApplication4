@@ -1,27 +1,28 @@
 ﻿using ECinema.Domain.DomainModels;
 using ECinema.Repository.Interface;
 using ECinema.Services.Interface;
-using System;
 using System.Collections.Generic;
-using System.Text;
+using System.Threading.Tasks;
 
 namespace ECinema.Services.Implementation
 {
     public class OrderService : IOrderService
     {
         private readonly IOrderRepository _orderRepository;
-        public OrderService(IOrderRepository _orderRepository)
+        
+        public OrderService(IOrderRepository orderRepository)
         {
-            this._orderRepository = _orderRepository;
+            _orderRepository = orderRepository;
         }
-        public List<Order> GetAllOrders()
+        
+        public async Task<List<Order>> GetAllOrders()
         {
-            return this._orderRepository.GetAllOrders();
+            return await _orderRepository.GetAllOrdersAsync();
         }
 
-        public Order GetOrderDetails(BaseEntity model)
+        public async Task<Order> GetOrderDetails(BaseEntity model)
         {
-            return this._orderRepository.GetOrderDetails(model);
+            return await _orderRepository.GetOrderDetailsAsync(model);
         }
     }
 }

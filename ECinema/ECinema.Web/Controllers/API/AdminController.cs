@@ -1,8 +1,8 @@
 ﻿using ECinema.Domain.DomainModels;
 using ECinema.Services.Interface;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace ECinema.Web.Controllers.API
 {
@@ -18,15 +18,15 @@ namespace ECinema.Web.Controllers.API
         }
 
         [HttpGet("[action]")]
-        public List<Order> GetAllActiveOrders()
+        public async Task<List<Order>> GetAllActiveOrders()
         {
-            return this._orderService.GetAllOrders();
+            return await _orderService.GetAllOrders();
         }
 
         [HttpPost("[action]")]
-        public Order GetDetailsForOrder(BaseEntity model)
+        public async Task<Order> GetDetailsForOrder(BaseEntity model)
         {
-            return this._orderService.GetOrderDetails(model);
+            return await _orderService.GetOrderDetails(model);
         }
 
     }
