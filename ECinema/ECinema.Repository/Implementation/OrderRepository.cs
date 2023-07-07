@@ -1,40 +1,36 @@
 ﻿using ECinema.Domain.DomainModels;
 using ECinema.Repository.Interface;
 using Microsoft.EntityFrameworkCore;
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using System.Threading.Tasks;
 
 namespace ECinema.Repository.Implementation
 {
     public class OrderRepository : IOrderRepository
     {
-        private readonly ApplicationDbContext context;
-        private DbSet<Order> entities;
-        string errorMessage = string.Empty;
+        private readonly DbSet<Order> _entities;
 
         public OrderRepository(ApplicationDbContext context)
         {
-            this.context = context;
-            entities = context.Set<Order>();
+            _entities = context.Set<Order>();
         }
-        public List<Order> GetAllOrders()
+        
+        public async Task<List<Order>> GetAllOrdersAsync()
         {
-            return entities
+            return await _entities
                 .Include(z => z.TicketInOrders)
                 .Include(z => z.User)
                 .Include("TicketInOrders.OrderedTicket")
-                .ToListAsync().Result;
+                .ToListAsync();
         }
 
-        public Order GetOrderDetails(BaseEntity model)
+        public async Task<Order> GetOrderDetailsAsync(BaseEntity model)
         {
-            return entities
+            return await _entities
                 .Include(z => z.TicketInOrders)
                 .Include(z => z.User)
                 .Include("TicketInOrders.OrderedTicket")
-                .SingleOrDefault(z => z.Id == model.Id);
+                .SingleOrDefaultAsync(z => z.Id == model.Id);
         }
     }
 }

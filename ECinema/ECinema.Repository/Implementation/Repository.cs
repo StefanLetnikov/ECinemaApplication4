@@ -4,58 +4,56 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
+using System.Threading.Tasks;
 
 namespace ECinema.Repository.Implementation
 {
     public class Repository<T> : IRepository<T> where T : BaseEntity
     {
-        private readonly ApplicationDbContext context;
-        private DbSet<T> entities;
-        string errorMessage = string.Empty;
+        private readonly ApplicationDbContext _context;
+        private readonly DbSet<T> _entities;
 
         public Repository(ApplicationDbContext context)
         {
-            this.context = context;
-            entities = context.Set<T>();
+            _context = context;
+            _entities = context.Set<T>();
         }
-        public IEnumerable<T> GetAll()
+        
+        public IEnumerable<T> GetAll() => _entities.AsEnumerable();
+
+        public async Task<T> GetAsync(Guid? id) => await _entities.SingleOrDefaultAsync(s => s.Id == id);
+
+        public async Task InsertAsync(T entity)
         {
-            return entities.AsEnumerable();
+            if (entity is null)
+            {
+                throw new ArgumentNullException(nameof(entity));
+            }
+            
+            _entities.Add(entity);
+            await _context.SaveChangesAsync();
         }
 
-        public T Get(Guid? id)
+        public async Task UpdateAsync(T entity)
         {
-            return entities.SingleOrDefault(s => s.Id == id);
-        }
-        public void Insert(T entity)
-        {
-            if (entity == null)
+            if (entity is null)
             {
-                throw new ArgumentNullException("entity");
+                throw new ArgumentNullException(nameof(entity));
             }
-            entities.Add(entity);
-            context.SaveChanges();
+            
+            _entities.Update(entity);
+            await _context.SaveChangesAsync();
         }
 
-        public void Update(T entity)
+        public async Task DeleteAsync(T entity)
         {
-            if (entity == null)
+            if (entity is null)
             {
-                throw new ArgumentNullException("entity");
+                throw new ArgumentNullException(nameof(entity));
             }
-            entities.Update(entity);
-            context.SaveChanges();
-        }
-
-        public void Delete(T entity)
-        {
-            if (entity == null)
-            {
-                throw new ArgumentNullException("entity");
-            }
-            entities.Remove(entity);
-            context.SaveChanges();
+            
+            _entities.Remove(entity);
+            await _context.SaveChangesAsync();
         }
     }
 }

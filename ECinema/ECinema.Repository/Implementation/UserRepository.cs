@@ -4,44 +4,42 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 
 namespace ECinema.Repository.Implementation
 {
     public class UserRepository : IUserRepository
     {
-        private readonly ApplicationDbContext context;
-        private DbSet<ECinemaApplicationUser> entities;
-        string errorMessage = string.Empty;
+        private readonly ApplicationDbContext _context;
+        private readonly DbSet<ECinemaApplicationUser> _entities;
 
         public UserRepository(ApplicationDbContext context)
         {
-            this.context = context;
-            entities = context.Set<ECinemaApplicationUser>();
+            _context = context;
+            _entities = context.Set<ECinemaApplicationUser>();
         }
+        
         public IEnumerable<ECinemaApplicationUser> GetAll()
         {
-            return entities.AsEnumerable();
+            return _entities.AsEnumerable();
         }
 
         public ECinemaApplicationUser Get(string id)
         {
-            return entities
+            return _entities
                 .Include(z => z.UserCart)
                 .Include("UserCart.TicketInShoppingCarts")
                 .Include("UserCart.TicketInShoppingCarts.Ticket")
                 .SingleOrDefault(s => s.Id == id);
-
-
         }
+        
         public void Insert(ECinemaApplicationUser entity)
         {
             if (entity == null)
             {
                 throw new ArgumentNullException("entity");
             }
-            entities.Add(entity);
-            context.SaveChanges();
+            _entities.Add(entity);
+            _context.SaveChanges();
         }
 
         public void Update(ECinemaApplicationUser entity)
@@ -50,8 +48,8 @@ namespace ECinema.Repository.Implementation
             {
                 throw new ArgumentNullException("entity");
             }
-            entities.Update(entity);
-            context.SaveChanges();
+            _entities.Update(entity);
+            _context.SaveChanges();
         }
 
         public void Delete(ECinemaApplicationUser entity)
@@ -60,8 +58,8 @@ namespace ECinema.Repository.Implementation
             {
                 throw new ArgumentNullException("entity");
             }
-            entities.Remove(entity);
-            context.SaveChanges();
+            _entities.Remove(entity);
+            _context.SaveChanges();
         }
     }
 }
